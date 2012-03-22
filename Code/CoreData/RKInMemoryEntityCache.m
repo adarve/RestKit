@@ -20,14 +20,21 @@
 #undef RKLogComponent
 #define RKLogComponent lcl_cRestKitCoreData
 
+@interface RKInMemoryEntityCache ()
+@property(nonatomic, retain) NSMutableDictionary *entityCache;
+
+- (BOOL)shouldCoerceAttributeToString:(NSString *)attribute forEntity:(NSEntityDescription *)entity;
+- (NSManagedObject *)objectWithID:(NSManagedObjectID *)objectID inContext:(NSManagedObjectContext *)managedObjectContext;
+@end
+
 @implementation RKInMemoryEntityCache
 
-@synthesize entityCache = _entityCache;
+@synthesize entityCache;
 
 - (id)init {
     self = [super init];
     if (self) {
-        _entityCache = [[NSMutableDictionary alloc] init];
+        entityCache = [[NSMutableDictionary alloc] init];
 #if TARGET_OS_IPHONE
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(didReceiveMemoryWarning)
@@ -40,7 +47,7 @@
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [_entityCache release];
+    [entityCache release];
     [super dealloc];
 }
 
@@ -48,40 +55,40 @@
     [[NSNotificationCenter defaultCenter] removeObserver:self
                                                     name:NSManagedObjectContextObjectsDidChangeNotification
                                                   object:nil];
-    [_entityCache removeAllObjects];
+    [entityCache removeAllObjects];
 }
 
 - (NSMutableDictionary *)cachedObjectsForEntity:(NSEntityDescription *)entity
-                                    withMapping:(RKManagedObjectMapping *)mapping
+                                    byAttribute:(NSString *)attributeName
                                       inContext:(NSManagedObjectContext *)managedObjectContext {
     NSAssert(entity, @"Cannot retrieve cached objects without an entity");
-    NSAssert(mapping, @"Cannot retrieve cached objects without a mapping");
+    NSAssert(attributeName, @"Cannot retrieve cached objects without an attributeName");
     NSAssert(managedObjectContext, @"Cannot retrieve cached objects without a managedObjectContext");
 
-    NSMutableDictionary *cachedObjectsForEntity = [_entityCache objectForKey:entity.name];
+    NSMutableDictionary *cachedObjectsForEntity = [entityCache objectForKey:entity.name];
     if (cachedObjectsForEntity == nil) {
-        [self cacheObjectsForEntity:entity withMapping:mapping inContext:managedObjectContext];
-        cachedObjectsForEntity = [_entityCache objectForKey:entity.name];
+        [self cacheObjectsForEntity:entity byAttribute:attributeName inContext:managedObjectContext];
+        cachedObjectsForEntity = [entityCache objectForKey:entity.name];
     }
     return cachedObjectsForEntity;
 }
 
 - (NSManagedObject *)cachedObjectForEntity:(NSEntityDescription *)entity
-                               withMapping:(RKManagedObjectMapping *)mapping
-                        andPrimaryKeyValue:(id)primaryKeyValue
+                             withAttribute:(NSString *)attributeName
+                                     value:(id)attributeValue
                                  inContext:(NSManagedObjectContext *)managedObjectContext {
     NSAssert(entity, @"Cannot retrieve a cached object without an entity");
-    NSAssert(mapping, @"Cannot retrieve a cached object without a mapping");
-    NSAssert(primaryKeyValue, @"Cannot retrieve a cached object without a primaryKeyValue");
+    NSAssert(attributeName, @"Cannot retrieve a cached object without a mapping");
+    NSAssert(attributeValue, @"Cannot retrieve a cached object without a primaryKeyValue");
     NSAssert(managedObjectContext, @"Cannot retrieve a cached object without a managedObjectContext");
 
     NSMutableDictionary *cachedObjectsForEntity = [self cachedObjectsForEntity:entity
-                                                                   withMapping:mapping
+                                                                   byAttribute:attributeName
                                                                      inContext:managedObjectContext];
 
     // NOTE: We coerce the primary key into a string (if possible) for convenience. Generally
     // primary keys are expressed either as a number of a string, so this lets us support either case interchangeably
-    id lookupValue = [primaryKeyValue respondsToSelector:@selector(stringValue)] ? [primaryKeyValue stringValue] : primaryKeyValue;
+    id lookupValue = [attributeValue respondsToSelector:@selector(stringValue)] ? [attributeValue stringValue] : attributeValue;
     NSManagedObjectID *objectID = [cachedObjectsForEntity objectForKey:lookupValue];
     NSManagedObject *object = nil;
     if (objectID) {
@@ -91,10 +98,10 @@
 }
 
 - (void)cacheObjectsForEntity:(NSEntityDescription *)entity
-                  withMapping:(RKManagedObjectMapping *)mapping
+                  byAttribute:(NSString *)attributeName
                     inContext:(NSManagedObjectContext *)managedObjectContext {
     NSAssert(entity, @"Cannot cache objects without an entity");
-    NSAssert(mapping, @"Cannot cache objects without a mapping");
+    NSAssert(attributeName, @"Cannot cache objects without an attributeName");
     NSAssert(managedObjectContext, @"Cannot cache objects without a managedObjectContext");
 
     NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
@@ -107,10 +114,10 @@
     RKLogInfo(@"Caching all %ld %@ objectsIDs to thread local storage", (long) [objectIds count], entity.name);
     NSMutableDictionary* dictionary = [NSMutableDictionary dictionary];
     if ([objectIds count] > 0) {
-        BOOL coerceToString = [self shouldCoerceAttributeToString:mapping.primaryKeyAttribute forEntity:entity];
+        BOOL coerceToString = [self shouldCoerceAttributeToString:attributeName forEntity:entity];
         for (NSManagedObjectID* theObjectID in objectIds) {
             NSManagedObject* theObject = [self objectWithID:theObjectID inContext:managedObjectContext];
-            id attributeValue = [theObject valueForKey:mapping.primaryKeyAttribute];
+            id attributeValue = [theObject valueForKey:attributeName];
             // Coerce to a string if possible
             attributeValue = coerceToString ? [attributeValue stringValue] : attributeValue;
             if (attributeValue) {
@@ -118,7 +125,7 @@
             }
         }
     }
-    [_entityCache setObject:dictionary forKey:entity.name];
+    [entityCache setObject:dictionary forKey:entity.name];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
 											 selector:@selector(objectsDidChange:)
@@ -126,21 +133,21 @@
 											   object:managedObjectContext];
 }
 
-- (void)cacheObject:(NSManagedObject *)managedObject withMapping:(RKManagedObjectMapping *)mapping inContext:(NSManagedObjectContext *)managedObjectContext {
+- (void)cacheObject:(NSManagedObject *)managedObject byAttribute:(NSString *)attributeName inContext:(NSManagedObjectContext *)managedObjectContext {
     NSAssert(managedObject, @"Cannot cache an object without a managedObject");
-    NSAssert(mapping, @"Cannot cache an object without a mapping");
+    NSAssert(attributeName, @"Cannot cache an object without a mapping");
     NSAssert(managedObjectContext, @"Cannot cache an object without a managedObjectContext");
 
     NSManagedObjectID *objectID = [managedObject objectID];
     if (objectID) {
         NSEntityDescription *entity = managedObject.entity;
-        BOOL coerceToString = [self shouldCoerceAttributeToString:mapping.primaryKeyAttribute forEntity:entity];
-        id attributeValue = [managedObject valueForKey:mapping.primaryKeyAttribute];
+        BOOL coerceToString = [self shouldCoerceAttributeToString:attributeName forEntity:entity];
+        id attributeValue = [managedObject valueForKey:attributeName];
         // Coerce to a string if possible
         attributeValue = coerceToString ? [attributeValue stringValue] : attributeValue;
         if (attributeValue) {
             NSMutableDictionary *cachedObjectsForEntity = [self cachedObjectsForEntity:entity
-                                                                           withMapping:mapping
+                                                                           byAttribute:attributeName
                                                                              inContext:managedObjectContext];
             [cachedObjectsForEntity setObject:objectID forKey:attributeValue];
         }
@@ -152,19 +159,19 @@
 											   object:managedObjectContext];
 }
 
-- (void)cacheObject:(NSEntityDescription *)entity withMapping:(RKManagedObjectMapping *)mapping andPrimaryKeyValue:(id)primaryKeyValue inContext:(NSManagedObjectContext *)managedObjectContext {
+- (void)cacheObject:(NSEntityDescription *)entity byAttribute:(NSString *)attributeName value:(id)attributeValue inContext:(NSManagedObjectContext *)managedObjectContext {
     NSAssert(entity, @"Cannot cache an object without an entity");
-    NSAssert(mapping, @"Cannot cache an object without a mapping");
+    NSAssert(attributeName, @"Cannot cache an object without a mapping");
     NSAssert(managedObjectContext, @"Cannot cache an object without a managedObjectContext");
 
     // NOTE: We coerce the primary key into a string (if possible) for convenience. Generally
     // primary keys are expressed either as a number or a string, so this lets us support either case interchangeably
-    id lookupValue = [primaryKeyValue respondsToSelector:@selector(stringValue)] ? [primaryKeyValue stringValue] : primaryKeyValue;
+    id lookupValue = [attributeValue respondsToSelector:@selector(stringValue)] ? [attributeValue stringValue] : attributeValue;
 
     NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
     [fetchRequest setEntity:entity];
     [fetchRequest setFetchLimit:1];
-    [fetchRequest setPredicate:[NSPredicate predicateWithFormat:@"%K = %@", mapping.primaryKeyAttribute, lookupValue]];
+    [fetchRequest setPredicate:[NSPredicate predicateWithFormat:@"%K = %@", attributeName, lookupValue]];
     [fetchRequest setResultType:NSManagedObjectIDResultType];
 
     NSArray *objectIds = [NSManagedObject executeFetchRequest:fetchRequest inContext:managedObjectContext];
@@ -175,7 +182,7 @@
         objectID = [objectIds objectAtIndex:0];
         if (objectID && lookupValue) {
             NSMutableDictionary *cachedObjectsForEntity = [self cachedObjectsForEntity:entity
-                                                                           withMapping:mapping
+                                                                           byAttribute:attributeName
                                                                              inContext:managedObjectContext];
             [cachedObjectsForEntity setObject:objectID forKey:lookupValue];
         }
@@ -187,32 +194,32 @@
 											   object:managedObjectContext];
 }
 
-- (void)expireCacheEntryForObject:(NSManagedObject *)managedObject withMapping:(RKManagedObjectMapping *)mapping inContext:(NSManagedObjectContext *)managedObjectContext {
+- (void)expireCacheEntryForObject:(NSManagedObject *)managedObject byAttribute:(NSString *)attributeName inContext:(NSManagedObjectContext *)managedObjectContext {
     NSAssert(managedObject, @"Cannot expire cache entry for an object without a managedObject");
-    NSAssert(mapping, @"Cannot expire cache entry for an object without a mapping");
+    NSAssert(attributeName, @"Cannot expire cache entry for an object without a mapping");
     NSAssert(managedObjectContext, @"Cannot expire cache entry for an object without a managedObjectContext");
 
     NSEntityDescription *entity = managedObject.entity;
-    BOOL coerceToString = [self shouldCoerceAttributeToString:mapping.primaryKeyAttribute forEntity:entity];
-    id attributeValue = [managedObject valueForKey:mapping.primaryKeyAttribute];
+    BOOL coerceToString = [self shouldCoerceAttributeToString:attributeName forEntity:entity];
+    id attributeValue = [managedObject valueForKey:attributeName];
     // Coerce to a string if possible
     attributeValue = coerceToString ? [attributeValue stringValue] : attributeValue;
     if (attributeValue) {
         NSMutableDictionary *cachedObjectsForEntity = [self cachedObjectsForEntity:entity
-                                                                       withMapping:mapping
+                                                                       byAttribute:attributeName
                                                                          inContext:managedObjectContext];
         [cachedObjectsForEntity removeObjectForKey:attributeValue];
 
         if ([cachedObjectsForEntity count] == 0) {
-            [self expireCacheEntryForEntity:entity];
+            [self expireCacheEntriesForEntity:entity];
         }
     }
 }
 
-- (void)expireCacheEntryForEntity:(NSEntityDescription *)entity {
+- (void)expireCacheEntriesForEntity:(NSEntityDescription *)entity {
     NSAssert(entity, @"Cannot expire cache entry for an entity without an entity");
     RKLogTrace(@"About to expire cache for entity name=%@", entity.name);
-    [_entityCache removeObjectForKey:entity.name];
+    [entityCache removeObjectForKey:entity.name];
 }
 
 
@@ -248,7 +255,7 @@
 	}
 
     for (NSEntityDescription *entity in entitiesToExpire) {
-        [self expireCacheEntryForEntity:entity];
+        [self expireCacheEntriesForEntity:entity];
     }
 }
 

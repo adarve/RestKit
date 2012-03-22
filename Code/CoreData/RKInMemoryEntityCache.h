@@ -7,62 +7,53 @@
 //
 
 #import <CoreData/CoreData.h>
-#import "RKManagedObjectMapping.h"
 
-@interface RKInMemoryEntityCache : NSObject {
-    NSMutableDictionary *_entityCache;
-}
-
-@property (nonatomic, readonly) NSDictionary *entityCache;
+/**
+ Instances of RKInMemoryEntityCache provide an interface for the storage and retrieval of
+ NSManagedObject instances stored in memory by attribute.
+ */
+@interface RKInMemoryEntityCache : NSObject
 
 /**
  */
 - (NSMutableDictionary *)cachedObjectsForEntity:(NSEntityDescription *)entity
-                                    withMapping:(RKManagedObjectMapping *)mapping
+                                    byAttribute:(NSString *)attributeName
                                       inContext:(NSManagedObjectContext *)managedObjectContext;
 
 /**
  */
 - (NSManagedObject *)cachedObjectForEntity:(NSEntityDescription *)entity
-                               withMapping:(RKManagedObjectMapping *)mapping
-                        andPrimaryKeyValue:(id)primaryKeyValue
+                             withAttribute:(NSString *)attributeName
+                                     value:(id)attributeValue
                                  inContext:(NSManagedObjectContext *)managedObjectContext;
 
 /**
  */
 - (void)cacheObjectsForEntity:(NSEntityDescription *)entity
-                  withMapping:(RKManagedObjectMapping *)mapping
+                  byAttribute:(NSString *)attributeName
                     inContext:(NSManagedObjectContext *)managedObjectContext;
 
 /**
  */
 - (void)cacheObject:(NSManagedObject *)managedObject
-        withMapping:(RKManagedObjectMapping *)mapping
+        byAttribute:(NSString *)attributeName
           inContext:(NSManagedObjectContext *)managedObjectContext;
 
 /**
  */
 - (void)cacheObject:(NSEntityDescription *)entity
-        withMapping:(RKManagedObjectMapping *)mapping
- andPrimaryKeyValue:(id)primaryKeyValue
+        byAttribute:(NSString *)attributeName
+              value:(id)primaryKeyValue
           inContext:(NSManagedObjectContext *)managedObjectContext;
 
 /**
  */
 - (void)expireCacheEntryForObject:(NSManagedObject *)managedObject
-                      withMapping:(RKManagedObjectMapping *)mapping
+                      byAttribute:(NSString *)attributeName
                         inContext:(NSManagedObjectContext *)managedObjectContext;
 
 /**
  */
-- (void)expireCacheEntryForEntity:(NSEntityDescription *)entity;
-
-/**
- */
-- (BOOL)shouldCoerceAttributeToString:(NSString *)attribute forEntity:(NSEntityDescription *)entity;
-
-/**
- */
-- (NSManagedObject *)objectWithID:(NSManagedObjectID *)objectID inContext:(NSManagedObjectContext *)managedObjectContext;
+- (void)expireCacheEntriesForEntity:(NSEntityDescription *)entity;
 
 @end

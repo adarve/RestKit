@@ -26,8 +26,8 @@
 #import "RKManagedObjectMapping.h"
 #import "RKManagedObjectMappingOperation.h"
 #import "RKManagedObjectMappingCache.h"
-#import "RKInMemoryMappingCache.h"
-#import "RKFetchRequestMappingCache.h"
+#import "RKInMemoryManagedObjectCache.h"
+#import "RKFetchRequestManagedObjectCache.h"
 #import "RKSearchableManagedObject.h"
 #import "RKSearchWord.h"
 

@@ -20,7 +20,7 @@
 {
     // RKCat entity. Integer prinmary key.
     RKManagedObjectStore *objectStore = [RKTestFactory managedObjectStore];
-    RKFetchRequestMappingCache *cache = [RKFetchRequestMappingCache new];
+    RKFetchRequestManagedObjectCache *cache = [RKFetchRequestManagedObjectCache new];
     NSEntityDescription *entity = [RKCat entityDescription];
     RKManagedObjectMapping *mapping = [RKManagedObjectMapping mappingForClass:[RKCat class] inManagedObjectStore:objectStore];
     mapping.primaryKeyAttribute = @"railsID";
@@ -31,8 +31,8 @@
     [objectStore.primaryManagedObjectContext save:nil];
     
     NSManagedObject *cachedObject = [cache findInstanceOfEntity:entity 
-                                                    withMapping:mapping 
-                                             andPrimaryKeyValue:[NSNumber numberWithInt:123456]                                                                
+                                        withPrimaryKeyAttribute:mapping.primaryKeyAttribute
+                                             value:[NSNumber numberWithInt:123456]                                                                
                                          inManagedObjectContext:objectStore.primaryManagedObjectContext];
     assertThat(cachedObject, is(equalTo(reginald)));
 }
@@ -41,7 +41,7 @@
 {
     // RKEvent entity. String primary key  
     RKManagedObjectStore *objectStore = [RKTestFactory managedObjectStore];
-    RKFetchRequestMappingCache *cache = [RKFetchRequestMappingCache new];
+    RKFetchRequestManagedObjectCache *cache = [RKFetchRequestManagedObjectCache new];
     NSEntityDescription *entity = [RKEvent entityDescription];
     RKManagedObjectMapping *mapping = [RKManagedObjectMapping mappingForClass:[RKEvent class] inManagedObjectStore:objectStore];
     mapping.primaryKeyAttribute = @"eventID";
@@ -51,8 +51,8 @@
     [objectStore.primaryManagedObjectContext save:nil];
     
     NSManagedObject *cachedObject = [cache findInstanceOfEntity:entity 
-                                                    withMapping:mapping 
-                                             andPrimaryKeyValue:@"e-1234-a8-b12"                                                                
+                                                    withPrimaryKeyAttribute:mapping 
+                                             value:@"e-1234-a8-b12"                                                                
                                          inManagedObjectContext:objectStore.primaryManagedObjectContext];
     assertThat(cachedObject, is(equalTo(birthday)));
 }

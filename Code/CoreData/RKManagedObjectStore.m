@@ -26,7 +26,7 @@
 #import "RKObjectPropertyInspector+CoreData.h"
 #import "RKAlert.h"
 #import "RKDirectory.h"
-#import "RKInMemoryMappingCache.h"
+#import "RKInMemoryManagedObjectCache.h"
 #import "NSBundle+RKAdditions.h"
 #import "NSManagedObjectContext+RKAdditions.h"
 
@@ -117,7 +117,7 @@ static RKManagedObjectStore *defaultObjectStore = nil;
         self.primaryManagedObjectContext = [self newManagedObjectContext];
         
 
-        _cacheStrategy = [[RKInMemoryMappingCache alloc] init];
+        _cacheStrategy = [[RKInMemoryManagedObjectCache alloc] init];
 
         // Ensure there is a search word observer
         [RKSearchWordObserver sharedObserver];
