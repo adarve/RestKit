@@ -140,11 +140,11 @@
 
     id mockCacheStrategy = [OCMockObject partialMockForObject:objectStore.cacheStrategy];
     [[[mockCacheStrategy expect] andForwardToRealObject] findInstanceOfEntity:OCMOCK_ANY
-                                                                  withPrimaryKeyAttribute:mapping
+                                                                  withPrimaryKeyAttribute:mapping.primaryKeyAttribute
                                                            value:@"blake"
                                                        inManagedObjectContext:objectStore.primaryManagedObjectContext];
     [[[mockCacheStrategy expect] andForwardToRealObject] findInstanceOfEntity:mapping.entity
-                                                                  withPrimaryKeyAttribute:mapping
+                                                                  withPrimaryKeyAttribute:mapping.primaryKeyAttribute
                                                            value:@"rachit"
                                                        inManagedObjectContext:objectStore.primaryManagedObjectContext];
     id userInfo = [RKTestFixture parsedObjectWithContentsOfFixture:@"DynamicKeys.json"];

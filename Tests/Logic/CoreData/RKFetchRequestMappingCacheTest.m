@@ -51,7 +51,7 @@
     [objectStore.primaryManagedObjectContext save:nil];
     
     NSManagedObject *cachedObject = [cache findInstanceOfEntity:entity 
-                                                    withPrimaryKeyAttribute:mapping 
+                                                    withPrimaryKeyAttribute:mapping.primaryKeyAttribute 
                                              value:@"e-1234-a8-b12"                                                                
                                          inManagedObjectContext:objectStore.primaryManagedObjectContext];
     assertThat(cachedObject, is(equalTo(birthday)));

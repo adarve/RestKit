@@ -21,6 +21,13 @@
 #import "RKTestEnvironment.h"
 #import "RKHuman.h"
 
+@interface RKInMemoryEntityCache ()
+@property(nonatomic, retain) NSMutableDictionary *entityCache;
+
+- (BOOL)shouldCoerceAttributeToString:(NSString *)attribute forEntity:(NSEntityDescription *)entity;
+- (NSManagedObject *)objectWithID:(NSManagedObjectID *)objectID inContext:(NSManagedObjectContext *)managedObjectContext;
+@end
+
 @interface RKInMemoryEntityCacheTest : RKTestCase
 
 @end
@@ -43,12 +50,9 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 }
@@ -59,13 +63,10 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
-    [entityCache cacheObjectsForEntity:human.entity withMapping:mapping inContext:objectStore.primaryManagedObjectContext];
+    [entityCache cacheObjectsForEntity:human.entity byAttribute:@"railsID" inContext:objectStore.primaryManagedObjectContext];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 }
@@ -76,13 +77,11 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
-    NSManagedObject *cachedInstance = [entityCache cachedObjectForEntity:human.entity
-                                                             withMapping:mapping
-                                                      andPrimaryKeyValue:[NSNumber numberWithInt:1234]                                                                inContext:objectStore.primaryManagedObjectContext];
+    NSManagedObject *cachedInstance = [entityCache cachedObjectForEntity:human.entity 
+                                                           withAttribute:@"railsID" 
+                                                                   value:[NSNumber numberWithInt:1234] 
+                                                               inContext:objectStore.primaryManagedObjectContext];
     assertThat(cachedInstance, is(equalTo(human)));
 }
 
@@ -92,22 +91,19 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 
     RKHuman* newHuman = [RKHuman createEntity];
     newHuman.railsID = [NSNumber numberWithInt:5678];
 
-    [entityCache cacheObject:newHuman withMapping:mapping inContext:objectStore.primaryManagedObjectContext];
-    [entityCache cacheObjectsForEntity:human.entity withMapping:mapping inContext:objectStore.primaryManagedObjectContext];
+    [entityCache cacheObject:newHuman byAttribute:@"railsID" inContext:objectStore.primaryManagedObjectContext];
+    [entityCache cacheObjectsForEntity:human.entity byAttribute:@"railsID" inContext:objectStore.primaryManagedObjectContext];
     humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                         withMapping:mapping
+                                         byAttribute:@"railsID"
                                            inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(2)));
 }
@@ -118,12 +114,9 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 
@@ -131,14 +124,13 @@
     newHuman.railsID = [NSNumber numberWithInt:5678];
     [objectStore save:nil];
 
-    [entityCache cacheObject:newHuman.entity
-                 withMapping:mapping
-          andPrimaryKeyValue:[NSNumber numberWithInt:5678]
-                   inContext:objectStore.primaryManagedObjectContext];
-    [entityCache cacheObjectsForEntity:human.entity withMapping:mapping inContext:objectStore.primaryManagedObjectContext];
-    humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                         withMapping:mapping
-                                           inContext:objectStore.primaryManagedObjectContext];
+    [entityCache cacheObject:newHuman.entity 
+                 byAttribute:@"railsID" 
+                       value:[NSNumber numberWithInt:5678] 
+                   inContext:objectStore.primaryManagedObjectContext];    
+    [entityCache cacheObjectsForEntity:human.entity byAttribute:@"railsID" inContext:objectStore.primaryManagedObjectContext];
+
+    humanCache = [entityCache cachedObjectsForEntity:human.entity byAttribute:@"railsID" inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(2)));
 }
 
@@ -148,16 +140,13 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 
-    [entityCache expireCacheEntryForObject:human withMapping:mapping inContext:objectStore.primaryManagedObjectContext];
+    [entityCache expireCacheEntryForObject:human byAttribute:@"railsID" inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([entityCache.entityCache count], is(equalToInt(0)));
 }
 
@@ -167,16 +156,13 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
-    NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+    NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity                                       
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 
-    [entityCache expireCacheEntryForEntity:human.entity];
+    [entityCache expireCacheEntriesForEntity:human.entity];
     assertThatInteger([entityCache.entityCache count], is(equalToInt(0)));
 }
 
@@ -187,12 +173,9 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 
@@ -207,12 +190,9 @@
     human.railsID = [NSNumber numberWithInt:1234];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 
@@ -221,7 +201,7 @@
     [objectStore save:nil];
 
     humanCache = [entityCache cachedObjectsForEntity:human.entity
-                                         withMapping:mapping
+                                         byAttribute:@"railsID"
                                            inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(2)));
 }
@@ -235,12 +215,9 @@
     humanTwo.railsID = [NSNumber numberWithInt:5678];
     [objectStore save:nil];
 
-    RKManagedObjectMapping* mapping = [RKManagedObjectMapping mappingForClass:[RKHuman class] inManagedObjectStore:objectStore];
-    mapping.primaryKeyAttribute = @"railsID";
-
     RKInMemoryEntityCache *entityCache = [[[RKInMemoryEntityCache alloc] init] autorelease];
     NSMutableDictionary *humanCache = [entityCache cachedObjectsForEntity:humanOne.entity
-                                                              withMapping:mapping
+                                                              byAttribute:@"railsID"
                                                                 inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(2)));
 
@@ -248,7 +225,7 @@
     [objectStore save:nil];
 
     humanCache = [entityCache cachedObjectsForEntity:humanOne.entity
-                                         withMapping:mapping
+                                         byAttribute:@"railsID"
                                            inContext:objectStore.primaryManagedObjectContext];
     assertThatInteger([humanCache count], is(equalToInt(1)));
 }

@@ -31,7 +31,7 @@ extern NSString * const RKEntityDescriptionPrimaryKeyAttributeUserInfoKey;
     1. Programmatically, by retrieving the NSEntityDescription instance and
  setting the property's value.
  
- Programmatically configured values take presendence over the user info
+ Programmatically configured values take precedence over the user info
  dictionary.
  */
 @property(nonatomic, retain) NSString *primaryKeyAttribute;
